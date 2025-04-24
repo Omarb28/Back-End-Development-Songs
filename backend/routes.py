@@ -55,10 +55,11 @@ def parse_json(data):
 
 @app.route("/health", methods=["GET"])
 def health():
+    """return service health status"""
     return {"status": "OK"}
 
 
-@app.route("/count")
+@app.route("/count", methods=["GET"])
 def count():
     """return length of data"""
     count = db.songs.count_documents({})
@@ -66,10 +67,40 @@ def count():
     return {"count": count}, 200
 
 
-@app.route("/song")
+@app.route("/song", methods=["GET"])
 def songs():
     """return list of all songs"""
     cursor = db.songs.find({})
     list_of_songs = json_util.dumps(cursor)
 
     return jsonify({"songs": list_of_songs}), 200
+
+
+@app.route("/song/<int:id>", methods=["GET"])
+def get_song_by_id(id):
+    """return a song by its id"""
+    cursor = db.songs.find_one({"id": id})
+    song = json_util.dumps(cursor)
+
+    if song:
+        return jsonify(song), 200
+    else:
+        return {"message": "song with id not found"}, 404
+
+
+@app.route("/song", methods=["POST"])
+def create_song():
+    """create a song"""
+    new_song = request.json
+
+    cursor = db.songs.find_one({"id": new_song['id']})
+    song_exists = json_util.dumps(cursor)
+    
+    if song_exists != 'null':
+        return {"Message": f"song with id {new_song['id']} already present"}, 302
+
+    db.songs.insert_one(new_song)
+    cursor = db.songs.find_one({"id": new_song['id']})
+    inserted_song_id = str(cursor.get('_id'))
+
+    return {"inserted id": {"$oid:": inserted_song_id}}, 201
