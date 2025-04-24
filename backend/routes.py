@@ -83,7 +83,7 @@ def get_song_by_id(id):
     song = json_util.dumps(cursor)
 
     if song:
-        return jsonify(song), 200
+        return song, 200
     else:
         return {"message": "song with id not found"}, 404
 
@@ -100,7 +100,45 @@ def create_song():
         return {"Message": f"song with id {new_song['id']} already present"}, 302
 
     db.songs.insert_one(new_song)
+    
     cursor = db.songs.find_one({"id": new_song['id']})
     inserted_song_id = str(cursor.get('_id'))
 
     return {"inserted id": {"$oid:": inserted_song_id}}, 201
+
+
+@app.route("/song/<int:id>", methods=["PUT"])
+def update_song(id):
+    """updates a song"""
+    new_song_info = request.json
+
+    cursor = db.songs.find_one({"id": id})
+    song_exists = json_util.dumps(cursor)
+
+    if song_exists == 'null':
+        return {"message": "song not found"}, 404
+
+    result = db.songs.update_one({"id": id}, {"$set": new_song_info})
+    
+    if result.modified_count == 1:
+        cursor = db.songs.find_one({"id": id})
+        updated_song = json_util.dumps(cursor)
+
+        return updated_song, 201
+    
+    else:
+        return {"message":"song found, but nothing updated"}, 200
+
+
+@app.route("/song/<int:id>", methods=["DELETE"])
+def delete_song(id):
+    """deletes a song"""
+    cursor = db.songs.find_one({"id": id})
+    song_exists = json_util.dumps(cursor)
+
+    if song_exists == 'null':
+        return {"message": "song not found"}, 404
+
+    else:
+        db.songs.delete_one({"id": id})
+        return "", 204
