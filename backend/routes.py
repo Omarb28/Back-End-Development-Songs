@@ -48,6 +48,28 @@ db.songs.insert_many(songs_list)
 def parse_json(data):
     return json.loads(json_util.dumps(data))
 
+
 ######################################################################
 # INSERT CODE HERE
 ######################################################################
+
+@app.route("/health", methods=["GET"])
+def health():
+    return {"status": "OK"}
+
+
+@app.route("/count")
+def count():
+    """return length of data"""
+    count = db.songs.count_documents({})
+
+    return {"count": count}, 200
+
+
+@app.route("/song")
+def songs():
+    """return list of all songs"""
+    cursor = db.songs.find({})
+    list_of_songs = json_util.dumps(cursor)
+
+    return jsonify({"songs": list_of_songs}), 200
